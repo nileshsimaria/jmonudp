@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	qmon "github.com/nileshsimaria/jmonudp/protos/qmon"
@@ -40,7 +41,11 @@ func handleUDPConnection(conn *net.UDPConn) {
 				}
 				switch qm := qm_i.(type) {
 				case *qmon.QueueMonitor:
-					fmt.Printf("%v\n", qm)
+					b, err := json.MarshalIndent(qm, "", "  ")
+					if err != nil {
+						log.Fatalln("JSON indent error: ", err)
+					}
+					fmt.Printf("%s\n", b)
 				}
 			}
 		}
