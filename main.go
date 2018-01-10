@@ -14,18 +14,26 @@ import (
 var (
 	hostname = "0.0.0.0"
 	port     = flag.Int64("port", 0, "UDP port number to listen on")
+	jsonData = flag.Bool("json", false, "Convert data into JSON")
 )
 
 func handleUDPConnection(conn *net.UDPConn) {
 
 	buffer := make([]byte, 4096)
 
-	n, addr, err := conn.ReadFromUDP(buffer)
-	fmt.Println("UDP client : ", addr)
+	n, _, err := conn.ReadFromUDP(buffer)
 
 	ts := &tt.TelemetryStream{}
 	if err := proto.Unmarshal(buffer[:n], ts); err != nil {
 		log.Fatalln("Failed to parse: ", err)
+	}
+
+	if *jsonData {
+		b, err := json.MarshalIndent(ts, "", "  ")
+		if err != nil {
+			log.Fatalln("JSON indent error: ", err)
+		}
+		fmt.Printf("%s\n", b)
 	}
 	if proto.HasExtension(ts.Enterprise, tt.E_JuniperNetworks) {
 		jns_i, err := proto.GetExtension(ts.Enterprise, tt.E_JuniperNetworks)
@@ -41,11 +49,13 @@ func handleUDPConnection(conn *net.UDPConn) {
 				}
 				switch qm := qm_i.(type) {
 				case *qmon.QueueMonitor:
-					b, err := json.MarshalIndent(qm, "", "  ")
-					if err != nil {
-						log.Fatalln("JSON indent error: ", err)
+					if *jsonData {
+						b, err := json.MarshalIndent(qm, "", "  ")
+						if err != nil {
+							log.Fatalln("JSON indent error: ", err)
+						}
+						fmt.Printf("%s\n", b)
 					}
-					fmt.Printf("%s\n", b)
 				}
 			}
 		}
